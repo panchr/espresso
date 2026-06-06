@@ -100,6 +100,12 @@ orphans the child), and timed sessions also pass `-t`; caffeinate honors
 whichever fires first (verified empirically). A dead app can never leave the
 Mac stuck awake. Clearing/quitting terminates the child directly.
 
+## Git Workflow
+
+- Make targeted, scoped commits **automatically** as work completes — one
+  logical change per commit (feature, fix, docs), without waiting to be asked.
+- Never push without an explicit request.
+
 ## Conventions & Patterns
 
 - State flows one way: `CaffeinateController` → `sessionChanged()` →
