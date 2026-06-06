@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "espresso",
+  "project_id": "7f2016c4-e526-4d7b-a0d6-0ba6f811edec"
+}
