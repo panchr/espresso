@@ -1,17 +1,21 @@
 import AppKit
+import ServiceManagement
+import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private static let durations: [(title: String, seconds: TimeInterval?)] = [
-        ("30 Minutes", 30 * 60),
-        ("1 Hour", 60 * 60),
-        ("2 Hours", 2 * 60 * 60),
-        ("4 Hours", 4 * 60 * 60),
-        ("Forever", nil),
+    private static let durations: [(label: String, seconds: TimeInterval?)] = [
+        ("30m", 30 * 60),
+        ("1h", 60 * 60),
+        ("2h", 2 * 60 * 60),
+        ("4h", 4 * 60 * 60),
+        ("∞", nil),
     ]
 
     private let caffeinate = CaffeinateController()
+    private let model = SessionModel()
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
+    private lazy var popover = makePopover()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -35,8 +39,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Click handling
 
     @objc private func statusItemClicked() {
-        let isRightClick = NSApp.currentEvent?.type == .rightMouseUp
-        showMenu(isRightClick ? rightClickMenu() : leftClickMenu())
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showMenu(rightClickMenu())
+        } else {
+            togglePopover()
+        }
+    }
+
+    private func makePopover() -> NSPopover {
+        let popover = NSPopover()
+        popover.behavior = .transient
+        let panel = StatusPanelView(
+            model: model,
+            options: Self.durations.map(\.label),
+            onSelect: { [weak self] index in self?.startSession(at: index) },
+            onClear: { [weak self] in self?.cancelSession() }
+        )
+        let host = NSHostingController(rootView: panel)
+        host.sizingOptions = .preferredContentSize
+        popover.contentViewController = host
+        return popover
+    }
+
+    private func togglePopover() {
+        if popover.isShown {
+            popover.performClose(nil)
+        } else if let button = statusItem.button {
+            // Activation makes the transient popover dismiss on outside clicks.
+            if #available(macOS 14.0, *) {
+                NSApp.activate()
+            } else {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
     }
 
     /// NSStatusItem only auto-shows a menu assigned to `menu`, which would
@@ -52,44 +88,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = nil
     }
 
-    private func leftClickMenu() -> NSMenu {
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Keep Awake For", action: nil, keyEquivalent: ""))
-        for (index, duration) in Self.durations.enumerated() {
-            let item = NSMenuItem(title: duration.title, action: #selector(startSession(_:)), keyEquivalent: "")
-            item.target = self
-            item.tag = index
-            menu.addItem(item)
-        }
-        return menu
-    }
-
     private func rightClickMenu() -> NSMenu {
         let menu = NSMenu()
         if caffeinate.isActive {
-            let title = caffeinate.endDate == nil ? "Stop Keeping Awake" : "Cancel Timer"
-            let cancel = NSMenuItem(title: title, action: #selector(cancelSession), keyEquivalent: "")
-            cancel.target = self
-            menu.addItem(cancel)
+            let clear = NSMenuItem(title: "Clear", action: #selector(cancelSession), keyEquivalent: "")
+            clear.target = self
+            menu.addItem(clear)
             menu.addItem(.separator())
         }
+        let login = NSMenuItem(title: "Start at Login", action: #selector(toggleStartAtLogin), keyEquivalent: "")
+        login.target = self
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(login)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Espresso", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         return menu
     }
 
+    @objc private func toggleStartAtLogin() {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            NSLog("Failed to toggle Start at Login: \(error)")
+        }
+    }
+
     // MARK: - Session management
 
-    @objc private func startSession(_ sender: NSMenuItem) {
-        caffeinate.start(duration: Self.durations[sender.tag].seconds)
+    private func startSession(at index: Int) {
+        caffeinate.start(duration: Self.durations[index].seconds)
+        model.selectedIndex = index
         sessionChanged()
+        popover.performClose(nil)
     }
 
     @objc private func cancelSession() {
         caffeinate.stop()
         sessionChanged()
+        popover.performClose(nil)
     }
 
     private func sessionChanged() {
+        model.isActive = caffeinate.isActive
+        if !caffeinate.isActive {
+            model.selectedIndex = nil
+        }
         refreshTimer?.invalidate()
         refreshTimer = nil
         if caffeinate.isActive, caffeinate.endDate != nil {
