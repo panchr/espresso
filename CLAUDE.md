@@ -53,18 +53,47 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+make build    # swift build -c release
+make app      # assemble Espresso.app bundle (Info.plist + binary, ad-hoc signed)
+make install  # copy Espresso.app to /Applications (canonical copy for Login Items)
+make run      # run the raw binary for quick iteration
 ```
+
+No test suite yet. Verification is manual: launch the app, drive the menubar
+UI, and confirm `caffeinate` children/assertions via `ps` and `pmset -g assertions`
+(attribute caffeinate processes by ppid — other tools also spawn caffeinate).
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Menubar-only AppKit app (SwiftPM executable, no Xcode project; `.accessory`
+activation policy + `LSUIElement`).
+
+- `main.swift` — entry point; wires NSApplication + delegate
+- `AppDelegate.swift` — owns the NSStatusItem: left-click opens an NSPopover
+  (SwiftUI panel), right-click shows an NSMenu (Clear / Start at Login / Quit),
+  and a 1s timer renders the countdown in the menubar
+- `CaffeinateController.swift` — single source of truth for the keep-awake
+  session; spawns `/usr/bin/caffeinate -di [-t secs]` as a child process and
+  reports expiry via callback
+- `StatusPanelView.swift` — SwiftUI popover content + `SessionModel`
+  (ObservableObject bridging app state into the view)
+
+**Core design decision**: all power management is delegated to the `caffeinate`
+child process. Timed sessions pass `-t` so the timeout is enforced by
+`caffeinate` itself — a crashed app can never leave the Mac stuck awake.
+Clearing/quitting terminates the child.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- State flows one way: `CaffeinateController` → `sessionChanged()` →
+  `SessionModel` + status item refresh. Don't mutate UI state elsewhere.
+- The status item uses the assign-menu-then-`performClick` trick so left and
+  right clicks can do different things; the menu is detached in `menuDidClose`.
+- `statusItem.autosaveName` is set ("EspressoStatusItem") so the user's
+  menubar position persists; don't remove it.
+- macOS 26 gotcha: when the menubar is full, ControlCenter parks new status
+  items under the notch with no overflow UI — an "invisible icon" is usually
+  crowding, not a bug. Third-party items don't appear under the app's own pid
+  in CGWindowList; they're hosted by ControlCenter.
+- Comment only the non-obvious "why"; keep views/state bridging minimal.
