@@ -3,3 +3,9 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# Swift build artifacts
+.build/
+.swiftpm/
+Espresso.app/
+.DS_Store
