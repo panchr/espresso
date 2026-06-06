@@ -19,8 +19,9 @@ Espresso doesn't manage power assertions itself. Each session simply runs the
 system's `caffeinate` command (preventing both display and idle sleep) as a
 child process, and clearing a session terminates it.
 
-For timed sessions, the timeout is enforced by `caffeinate` itself — so even
-if Espresso crashes, the wake-lock expires on schedule and your Mac never gets
+The child process also watches Espresso itself and exits if the app dies for
+any reason, and timed sessions additionally have their timeout enforced by
+`caffeinate` — so a crashed or force-killed Espresso can never leave your Mac
 stuck awake. Quitting the app ends any active session.
 
 ## Install

@@ -1,4 +1,5 @@
 import AppKit
+import EspressoCore
 import ServiceManagement
 import SwiftUI
 
@@ -158,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if caffeinate.isActive {
             button.image = Self.icon(named: "cup.and.saucer.fill")
             if let endDate = caffeinate.endDate {
-                button.title = " " + Self.countdownText(until: endDate)
+                button.title = " " + Countdown.text(remaining: endDate.timeIntervalSinceNow)
             } else {
                 button.title = " ∞"
             }
@@ -170,16 +171,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private static func icon(named name: String) -> NSImage? {
         NSImage(systemSymbolName: name, accessibilityDescription: "Espresso")
-    }
-
-    private static func countdownText(until endDate: Date) -> String {
-        let remaining = max(0, Int(endDate.timeIntervalSinceNow.rounded(.up)))
-        let hours = remaining / 3600
-        let minutes = (remaining % 3600) / 60
-        let seconds = remaining % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        }
-        return String(format: "%d:%02d", minutes, seconds)
     }
 }

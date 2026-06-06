@@ -2,10 +2,13 @@ APP_NAME = Espresso
 APP_BUNDLE = $(APP_NAME).app
 RELEASE_BINARY = .build/release/$(APP_NAME)
 
-.PHONY: build app install run clean
+.PHONY: build test app install run clean
 
 build:
 	swift build -c release
+
+test:
+	swift run EspressoCoreTests
 
 # Wrap the release binary in a minimal .app bundle so macOS treats it as a
 # proper menubar-only app (LSUIElement).
