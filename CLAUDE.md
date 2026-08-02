@@ -69,6 +69,10 @@ to `.build/apple/Products/Release/` instead of `.build/release/`.
 
 ## Releasing
 
+Use the `/release` skill (`.claude/skills/release/`) rather than tagging by
+hand — it checks CI, reads the diff since the last tag to sanity-check the
+version bump, and verifies the cask afterwards.
+
 Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a
 universal bundle and publishes `Espresso.zip` + `Espresso.zip.sha256` to a
 GitHub release. `install.sh` fetches `releases/latest/download/Espresso.zip`,
