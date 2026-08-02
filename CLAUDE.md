@@ -132,12 +132,16 @@ executable (UI).
   for the keep-awake session; spawns `caffeinate -di [-t secs]` as a child
   process (executable injectable for tests) and reports expiry via callback
 - `Sources/EspressoCore/Countdown.swift` — pure remaining-time formatter
+- `Sources/EspressoCore/LoginItemPolicy.swift` — pure decision table for what
+  launching should do about the login-item registration
 - `Sources/Espresso/main.swift` — entry point; wires NSApplication + delegate
 - `Sources/Espresso/AppDelegate.swift` — owns the NSStatusItem: left-click
   opens an NSPopover (SwiftUI panel), right-click shows an NSMenu (Clear /
   Start at Login / Quit), and a 1s timer renders the countdown in the menubar
 - `Sources/Espresso/StatusPanelView.swift` — SwiftUI popover content +
   `SessionModel` (ObservableObject bridging app state into the view)
+- `Sources/Espresso/LoginItemController.swift` — the `SMAppService` half of
+  Start at Login: applies `LoginItemPolicy` at launch and persists the choice
 
 **Core design decision**: all power management is delegated to the `caffeinate`
 child process. The child runs with `-w <app pid>` so it exits when Espresso
@@ -145,6 +149,17 @@ dies (even SIGKILL — graceful-quit cleanup alone misses SIGTERM/crash, which
 orphans the child), and timed sessions also pass `-t`; caffeinate honors
 whichever fires first (verified empirically). A dead app can never leave the
 Mac stuck awake. Clearing/quitting terminates the child directly.
+
+**Start at Login survives upgrades on purpose.** Ad-hoc signing gives a
+replaced bundle no stable code-signing identity, so macOS can drop the
+registration on upgrade and the toggle silently stops working. The preference
+is therefore stored with the bundle path and version it was made against, and
+`LoginItemPolicy` re-registers only when *that* copy changed — never
+resurrecting an item the user deleted, and never hijacking the registration of
+another copy still on disk (a dev build must not steal `/Applications`'s). A
+`requiresApproval` status means the user revoked consent in System Settings, so
+the toggle opens that pane instead of calling `register()`, which would only
+fail with `kSMErrorLaunchDeniedByUser`.
 
 ## Git Workflow
 

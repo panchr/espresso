@@ -60,7 +60,7 @@ make install
 
 - **Left-click** the cup for a panel showing the current state and duration
   options: 30m, 1h, 2h, 4h, or ∞. Pick one to keep the Mac awake; **Clear**
-  ends the session early.
+  ends the session early, and **Quit** exits Espresso.
 - **Right-click** for Clear, Start at Login, and Quit.
 - While a session is active, the menubar shows a live countdown next to a
   filled cup (or ∞ for indefinite sessions).
