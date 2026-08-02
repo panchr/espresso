@@ -85,7 +85,11 @@ which is the case the README's manual instructions cover.
 `Casks/espresso.rb` is the canonical cask; the release workflow stamps in the
 tagged version and the published archive's checksum, then pushes the result to
 `panchr/homebrew-tap`. That step is skipped (with a notice, not a failure) when
-the `TAP_TOKEN` secret is absent.
+the `TAP_DEPLOY_KEY` secret is absent — it holds an SSH deploy key with write
+access to the tap repo and nothing else, so no account-wide token is involved.
+A release cut without it can be published later with
+`gh workflow run release.yml -f tag=vX.Y`, which is why the publish step
+tolerates an existing release.
 
 Two constraints drive that design. A cask only *installs* a prebuilt artifact —
 it can't build from source, so GitHub releases remain the thing being

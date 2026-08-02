@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   # Lets an already-tagged release be rebuilt or republished — notably to push
-  # the cask for a release that was cut before TAP_TOKEN existed.
+  # the cask for a release cut before the tap credential existed.
   workflow_dispatch:
     inputs:
       tag:
@@ -21,10 +21,10 @@ jobs:
       TAG: ${{ inputs.tag || github.ref_name }}
       # Only whether the secret exists, not its value: a job-level secret would
       # be in the environment of every step, including third-party actions.
-      # Set TAP_TOKEN (contents:write on the tap repo) to have releases publish
-      # themselves to Homebrew; without it the tap step is skipped and the
-      # release still succeeds.
-      HAS_TAP_TOKEN: ${{ secrets.TAP_TOKEN != '' }}
+      # TAP_DEPLOY_KEY is an SSH deploy key with write access to the tap repo
+      # and nothing else; without it the tap step is skipped and the release
+      # still succeeds.
+      HAS_TAP_KEY: ${{ secrets.TAP_DEPLOY_KEY != '' }}
       TAP_REPO: panchr/homebrew-tap
     steps:
       - uses: actions/checkout@v5
@@ -83,14 +83,19 @@ jobs:
       # The cask can only point at an artifact that already exists, so this
       # runs after the release is published.
       - name: Update Homebrew tap
-        if: env.HAS_TAP_TOKEN == 'true'
+        if: env.HAS_TAP_KEY == 'true'
         env:
-          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
         run: |
           version="${TAG#v}"
           sha="$(cut -d' ' -f1 dist/Espresso.zip.sha256)"
 
-          git clone --quiet "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" "${RUNNER_TEMP}/tap"
+          key="${RUNNER_TEMP}/tap_deploy_key"
+          printf '%s\n' "${TAP_DEPLOY_KEY}" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+          git clone --quiet "git@github.com:${TAP_REPO}.git" "${RUNNER_TEMP}/tap"
           mkdir -p "${RUNNER_TEMP}/tap/Casks"
 
           # Drop the placeholder header; stamp in the version and checksum of
@@ -111,5 +116,5 @@ jobs:
           git push
 
       - name: Note skipped tap update
-        if: env.HAS_TAP_TOKEN != 'true'
-        run: echo "::notice::TAP_TOKEN is not set — skipping the Homebrew tap update"
+        if: env.HAS_TAP_KEY != 'true'
+        run: echo "::notice::TAP_DEPLOY_KEY is not set — skipping the Homebrew tap update"
