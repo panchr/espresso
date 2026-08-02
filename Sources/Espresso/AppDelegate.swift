@@ -1,6 +1,5 @@
 import AppKit
 import EspressoCore
-import ServiceManagement
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -13,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     ]
 
     private let caffeinate = CaffeinateController()
+    private let loginItem = LoginItemController()
     private let model = SessionModel()
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         caffeinate.onExpire = { [weak self] in self?.sessionChanged() }
+        // Restores the login item if an upgrade invalidated it, so relaunching
+        // the app from /Applications is enough to fix Start at Login.
+        loginItem.reconcile()
         refreshStatusItem()
     }
 
@@ -99,7 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let login = NSMenuItem(title: "Start at Login", action: #selector(toggleStartAtLogin), keyEquivalent: "")
         login.target = self
-        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        login.state = loginItem.isEnabled ? .on : .off
         menu.addItem(login)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Espresso", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -107,14 +110,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleStartAtLogin() {
-        do {
-            if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
-            } else {
-                try SMAppService.mainApp.register()
-            }
-        } catch {
-            NSLog("Failed to toggle Start at Login: \(error)")
+        // Only the user can restore consent they revoked in System Settings,
+        // so send them there rather than failing silently.
+        if loginItem.toggle() == .needsUserApproval {
+            loginItem.openSystemSettings()
         }
     }
 
