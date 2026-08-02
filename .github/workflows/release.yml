@@ -3,6 +3,13 @@ name: Release
 on:
   push:
     tags: ['v*']
+  # Lets an already-tagged release be rebuilt or republished — notably to push
+  # the cask for a release that was cut before TAP_TOKEN existed.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)publish, e.g. v0.1'
+        required: true
 
 permissions:
   contents: write
@@ -11,6 +18,7 @@ jobs:
   release:
     runs-on: macos-15
     env:
+      TAG: ${{ inputs.tag || github.ref_name }}
       # Only whether the secret exists, not its value: a job-level secret would
       # be in the environment of every step, including third-party actions.
       # Set TAP_TOKEN (contents:write on the tap repo) to have releases publish
@@ -20,12 +28,14 @@ jobs:
       TAP_REPO: panchr/homebrew-tap
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Test
         run: make test
 
       - name: Build universal app bundle
-        run: make dist ARCHS="arm64 x86_64" VERSION="${GITHUB_REF_NAME}"
+        run: make dist ARCHS="arm64 x86_64" VERSION="${TAG}"
 
       # A silently single-arch release would only fail on the Intel Macs we
       # have no way to test on.
@@ -43,6 +53,10 @@ jobs:
           ## Install
 
           ```sh
+          brew install --cask panchr/tap/espresso
+          ```
+
+          ```sh
           curl -fsSL https://raw.githubusercontent.com/panchr/espresso/main/install.sh | bash
           ```
 
@@ -51,12 +65,20 @@ jobs:
           ad-hoc signed rather than notarized, so Gatekeeper blocks it otherwise.
           EOF
 
-          gh release create "${GITHUB_REF_NAME}" \
-            dist/Espresso.zip \
-            dist/Espresso.zip.sha256 \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes \
-            --notes "$(cat "${RUNNER_TEMP}/notes.md")"
+          # Idempotent so a dispatch re-run can republish an existing release.
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" \
+              dist/Espresso.zip \
+              dist/Espresso.zip.sha256 \
+              --clobber
+          else
+            gh release create "${TAG}" \
+              dist/Espresso.zip \
+              dist/Espresso.zip.sha256 \
+              --title "${TAG}" \
+              --generate-notes \
+              --notes "$(cat "${RUNNER_TEMP}/notes.md")"
+          fi
 
       # The cask can only point at an artifact that already exists, so this
       # runs after the release is published.
@@ -65,7 +87,7 @@ jobs:
         env:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           sha="$(cut -d' ' -f1 dist/Espresso.zip.sha256)"
 
           git clone --quiet "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" "${RUNNER_TEMP}/tap"
