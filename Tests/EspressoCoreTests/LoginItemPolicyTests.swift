@@ -9,13 +9,16 @@ func runLoginItemPolicyTests() {
     func action(
         _ preference: LoginItemPreference?,
         _ status: LoginItemStatus,
-        recordedBundleExists: Bool = false
+        recordedBundleExists: Bool = false,
+        bundle: BundleIdentity = BundleIdentity(path: "/Applications/Espresso.app", version: "0.1.1"),
+        isInstalledLocation: Bool = true
     ) -> LoginItemAction {
         LoginItemPolicy.action(
             preference: preference,
             status: status,
-            bundle: installed,
-            recordedBundleExists: recordedBundleExists
+            bundle: bundle,
+            recordedBundleExists: recordedBundleExists,
+            isInstalledLocation: isInstalledLocation
         )
     }
 
@@ -57,6 +60,32 @@ func runLoginItemPolicyTests() {
         let stored = preference(true, elsewhere)
         let result = action(stored, .notRegistered, recordedBundleExists: true)
         expect(result == .none, "got \(result)")
+    }
+
+    // The regression this guard exists for: `brew upgrade` deletes the old
+    // bundle before writing the new one, and its "Reopening" step relaunched a
+    // repo build inside that window. The recorded copy looked gone, so the
+    // build read as a move and took the registration.
+    test("a build outside an Applications directory never claims the item") {
+        let repoBuild = BundleIdentity(path: "/Users/x/projects/espresso/Espresso.app", version: "dev")
+        let stored = preference(true, installed)
+        let result = action(stored, .notRegistered, bundle: repoBuild, isInstalledLocation: false)
+        expect(result == .none, "got \(result)")
+    }
+
+    test("an uninstalled copy cannot claim it even mid-upgrade") {
+        let downloaded = BundleIdentity(path: "/Users/x/Downloads/Espresso.app", version: "0.1.1")
+        let stored = preference(true, previous)
+        // recordedBundleExists: false is exactly the upgrade window.
+        let result = action(stored, .notFound, bundle: downloaded, isInstalledLocation: false)
+        expect(result == .none, "got \(result)")
+    }
+
+    test("a real move between Applications directories still re-registers") {
+        let userApps = BundleIdentity(path: "/Users/x/Applications/Espresso.app", version: "0.1.1")
+        let stored = preference(true, installed)
+        let result = action(stored, .notFound, bundle: userApps, isInstalledLocation: true)
+        expect(result == .register, "got \(result)")
     }
 
     // Never resurrect a login item the user deleted in System Settings.

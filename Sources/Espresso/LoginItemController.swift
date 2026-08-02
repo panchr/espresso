@@ -34,7 +34,8 @@ final class LoginItemController {
             preference: preference,
             status: Self.status,
             bundle: Self.bundle,
-            recordedBundleExists: recordedBundleExists
+            recordedBundleExists: recordedBundleExists,
+            isInstalledLocation: Self.isInstalledLocation
         ) {
         case .none:
             break
@@ -122,6 +123,19 @@ final class LoginItemController {
             path: Bundle.main.bundlePath,
             version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         )
+    }
+
+    /// Whether the running bundle sits directly in an Applications directory
+    /// (`/Applications`, `~/Applications`, and the network/developer variants).
+    /// A build output or a copy still in Downloads must never be able to claim
+    /// the login item away from the installed app.
+    private static var isInstalledLocation: Bool {
+        let parent = URL(fileURLWithPath: Bundle.main.bundlePath)
+            .deletingLastPathComponent()
+            .standardizedFileURL
+        return FileManager.default
+            .urls(for: .allApplicationsDirectory, in: .allDomainsMask)
+            .contains { $0.standardizedFileURL == parent }
     }
 
     private static var status: LoginItemStatus {

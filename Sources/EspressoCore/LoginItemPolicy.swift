@@ -62,12 +62,21 @@ public enum LoginItemAction: Equatable {
 /// honored rather than undone. Hijacking another copy's registration: a
 /// different path that still has a bundle on disk means a second copy is
 /// running, and it leaves the installed copy's login item alone.
+///
+/// `recordedBundleExists` alone is not enough for that second trap, because an
+/// upgrade deletes the old bundle before writing the new one. Anything launched
+/// during that window sees the recorded copy "gone" and reads as a move — which
+/// is exactly how a repo build, relaunched by `brew upgrade`, once claimed the
+/// registration. `isInstalledLocation` closes it: a login item should only ever
+/// point at an app living in an Applications directory, never at a build
+/// output, a disk image, or a copy in Downloads.
 public enum LoginItemPolicy {
     public static func action(
         preference: LoginItemPreference?,
         status: LoginItemStatus,
         bundle: BundleIdentity,
-        recordedBundleExists: Bool
+        recordedBundleExists: Bool,
+        isInstalledLocation: Bool
     ) -> LoginItemAction {
         switch status {
         case .enabled:
@@ -83,6 +92,8 @@ public enum LoginItemPolicy {
         case .notRegistered, .notFound:
             guard let preference, preference.enabled else { return .none }
             if preference.bundle == bundle { return .disablePreference }
+            // Never let an uninstalled copy speak for the installed one.
+            guard isInstalledLocation else { return .none }
             // Same location, new version: an in-place upgrade. Different
             // location with nothing left behind: the app was moved. Either way
             // this is the copy the preference was about.

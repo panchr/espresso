@@ -158,7 +158,12 @@ registration on upgrade and the toggle silently stops working. The preference
 is therefore stored with the bundle path and version it was made against, and
 `LoginItemPolicy` re-registers only when *that* copy changed — never
 resurrecting an item the user deleted, and never hijacking the registration of
-another copy still on disk (a dev build must not steal `/Applications`'s). A
+another copy still on disk (a dev build must not steal `/Applications`'s).
+"Still on disk" is not sufficient on its own: an upgrade deletes the old bundle
+before writing the new one, and anything launched in that window sees the
+recorded copy as gone and reads as a move. `brew upgrade`'s "Reopening" step hit
+exactly that and let a repo build claim the item, so re-registration also
+requires the running bundle to live in an Applications directory. A
 `requiresApproval` status means the user revoked consent in System Settings, so
 the toggle opens that pane instead of calling `register()`, which would only
 fail with `kSMErrorLaunchDeniedByUser`.
