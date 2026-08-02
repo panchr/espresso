@@ -93,7 +93,7 @@ Cutting a release is a tag push — CI builds a universal binary, bundles it, an
 publishes the archive plus its checksum:
 
 ```sh
-git tag v1.0.0 && git push origin v1.0.0
+git tag v0.1 && git push origin v0.1
 ```
 
 ## Built with Claude
