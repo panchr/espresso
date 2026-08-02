@@ -63,7 +63,9 @@ make run      # run the raw binary for quick iteration
 ```
 
 `VERSION` (default: exact tag, else short SHA) is stamped into the bundle's
-`CFBundleShortVersionString`. `ARCHS` is empty for a fast host-only build;
+`CFBundleShortVersionString`, and `GIT_SHA` into the custom `EspressoGitCommit`
+key — the right-click menu's header reports both, so an untagged build is still
+traceable. `ARCHS` is empty for a fast host-only build;
 `ARCHS="arm64 x86_64"` produces a universal binary — note SwiftPM then writes
 to `.build/apple/Products/Release/` instead of `.build/release/`.
 

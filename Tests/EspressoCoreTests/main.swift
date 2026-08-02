@@ -3,6 +3,7 @@ import Foundation
 runCountdownTests()
 runCaffeinateControllerTests()
 runLoginItemPolicyTests()
+runBuildInfoTests()
 
 if testFailures > 0 {
     print("\n\(testFailures) failure(s)")

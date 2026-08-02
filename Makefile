@@ -8,6 +8,10 @@ ZIP = $(DIST_DIR)/$(APP_NAME).zip
 VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo 0.0.0)
 BUNDLE_VERSION = $(patsubst v%,%,$(VERSION))
 
+# Stamped separately from VERSION so a tagged build still names its exact
+# source — the About line in the menu reports both.
+GIT_SHA ?= $(shell git rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
+
 # Empty ARCHS builds for the host only (fast local iteration); the release
 # workflow passes ARCHS="arm64 x86_64" for a universal binary. SwiftPM writes
 # multi-arch output to a different path than a native build.
@@ -37,6 +41,7 @@ app: build
 	cp $(RELEASE_BINARY) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(BUNDLE_VERSION)" $(APP_BUNDLE)/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(BUNDLE_VERSION)" $(APP_BUNDLE)/Contents/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :EspressoGitCommit $(GIT_SHA)" $(APP_BUNDLE)/Contents/Info.plist
 	codesign --force --sign - $(APP_BUNDLE)
 
 # Release archive. `ditto -c -k --keepParent` is the only zip that reliably

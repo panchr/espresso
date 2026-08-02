@@ -95,6 +95,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func rightClickMenu() -> NSMenu {
         let menu = NSMenu()
+        menu.addItem(buildInfoItem())
+        menu.addItem(.separator())
         if caffeinate.isActive {
             let clear = NSMenuItem(title: "Clear", action: #selector(cancelSession), keyEquivalent: "")
             clear.target = self
@@ -108,6 +110,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Espresso", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         return menu
+    }
+
+    /// Inert header naming the running build, so a bug report can quote the
+    /// exact commit. Carrying no action leaves it disabled by NSMenu itself.
+    private func buildInfoItem() -> NSMenuItem {
+        let info = Bundle.main.infoDictionary
+        let title = NSMutableAttributedString(
+            string: "Espresso",
+            attributes: [.font: NSFont.menuFont(ofSize: 0)]
+        )
+        let version = BuildInfo.versionLine(
+            version: info?["CFBundleShortVersionString"] as? String ?? "",
+            commit: info?["EspressoGitCommit"] as? String ?? ""
+        )
+        title.append(NSAttributedString(
+            string: "\n" + version,
+            attributes: [
+                .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]
+        ))
+
+        let item = NSMenuItem()
+        item.attributedTitle = title
+        return item
     }
 
     @objc private func toggleStartAtLogin() {
