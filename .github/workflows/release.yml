@@ -65,11 +65,16 @@ jobs:
           ad-hoc signed rather than notarized, so Gatekeeper blocks it otherwise.
           EOF
 
-          # Idempotent so a dispatch re-run can republish an existing release.
+          # A re-run exists to publish the cask for an already-released tag, so
+          # it must leave the published archive alone: builds are not
+          # reproducible, and re-uploading would invalidate the bytes anyone has
+          # already downloaded. Pull the published checksum instead, so the cask
+          # is stamped from what users actually get.
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" \
-              dist/Espresso.zip \
-              dist/Espresso.zip.sha256 \
+            echo "::notice::${TAG} is already published — reusing its assets"
+            gh release download "${TAG}" \
+              --pattern 'Espresso.zip.sha256' \
+              --dir dist \
               --clobber
           else
             gh release create "${TAG}" \
