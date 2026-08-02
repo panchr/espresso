@@ -98,14 +98,16 @@ Lint a cask edit with `brew style Casks/espresso.rb`. Run it on the file in
 place: outside a `Casks/` directory, rubocop lints it as plain Ruby and reports
 irrelevant offenses (Sorbet sigils, frozen string literals).
 
-**Tests are a plain executable target, not a `.testTarget`.** This machine has
-Command Line Tools only — XCTest isn't shipped and the CLT's Swift Testing
-integration is broken (no `xctest` harness to load `.xctest` bundles,
-`_Testing_Foundation` ships without its Swift module, runner discovers zero
-tests). `Tests/EspressoCoreTests` uses a ~40-line harness (`TestHarness.swift`:
-`test`/`expect`/`require`/`eventually`). Don't convert to `.testTarget` unless
-building with full Xcode. Unit tests cover `EspressoCore` only, substituting
-stub scripts for `caffeinate` so tests never hold real power assertions.
+**Tests are a plain executable target, not a `.testTarget`.**
+`Tests/EspressoCoreTests` uses a ~40-line harness (`TestHarness.swift`:
+`test`/`expect`/`require`/`eventually`) so `make test` needs nothing beyond a
+Swift compiler. That was originally forced by a Command Line Tools–only
+toolchain, which ships no `xctest` binary to load `.xctest` bundles; with full
+Xcode installed, a `.testTarget` does now work (verified — `swift test` runs
+XCTest and Swift Testing here). Keep the plain target anyway: it makes the
+suite runnable on a CLT-only machine, which is the cheapest environment a
+contributor might have. Unit tests cover `EspressoCore` only, substituting stub
+scripts for `caffeinate` so tests never hold real power assertions.
 
 The AppKit layer is verified manually: launch the app, drive the menubar UI,
 and confirm `caffeinate` children/assertions via `ps` and `pmset -g assertions`

@@ -1,5 +1,7 @@
 # Espresso ☕
 
+[![CI](https://github.com/panchr/espresso/actions/workflows/ci.yml/badge.svg)](https://github.com/panchr/espresso/actions/workflows/ci.yml)
+
 A tiny macOS menubar app that keeps your Mac awake — a modern replacement for
 the classic Caffeine app, built natively on top of macOS's own `caffeinate`
 tool.
@@ -93,6 +95,18 @@ publishes the archive plus its checksum:
 ```sh
 git tag v1.0.0 && git push origin v1.0.0
 ```
+
+## Built with Claude
+
+Espresso was written end to end with [Claude Code](https://claude.com/claude-code)
+— design, implementation, tests, packaging, and this README. `CLAUDE.md` holds
+the working context for that, and is worth reading if you want the reasoning
+behind the odd corners (why the tests are a plain executable target, why the
+`caffeinate` child watches the app's pid).
+
+The parts a language model can't check itself were checked by hand: the menubar
+UI is driven manually and its power assertions confirmed with `pmset -g
+assertions`. `EspressoCore` is covered by unit tests that run in CI.
 
 ## License
 

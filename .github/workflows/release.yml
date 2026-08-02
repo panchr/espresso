@@ -11,10 +11,12 @@ jobs:
   release:
     runs-on: macos-15
     env:
-      # Set this secret to a token with contents:write on the tap repo to have
-      # releases publish themselves to Homebrew; without it the tap step is
-      # skipped and the release still succeeds.
-      TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+      # Only whether the secret exists, not its value: a job-level secret would
+      # be in the environment of every step, including third-party actions.
+      # Set TAP_TOKEN (contents:write on the tap repo) to have releases publish
+      # themselves to Homebrew; without it the tap step is skipped and the
+      # release still succeeds.
+      HAS_TAP_TOKEN: ${{ secrets.TAP_TOKEN != '' }}
       TAP_REPO: panchr/homebrew-tap
     steps:
       - uses: actions/checkout@v5
@@ -59,7 +61,9 @@ jobs:
       # The cask can only point at an artifact that already exists, so this
       # runs after the release is published.
       - name: Update Homebrew tap
-        if: env.TAP_TOKEN != ''
+        if: env.HAS_TAP_TOKEN == 'true'
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           sha="$(cut -d' ' -f1 dist/Espresso.zip.sha256)"
@@ -85,5 +89,5 @@ jobs:
           git push
 
       - name: Note skipped tap update
-        if: env.TAP_TOKEN == ''
+        if: env.HAS_TAP_TOKEN != 'true'
         run: echo "::notice::TAP_TOKEN is not set — skipping the Homebrew tap update"
