@@ -57,9 +57,28 @@ bd close <id>         # Complete work
 make build    # swift build -c release
 make test     # unit tests: swift run EspressoCoreTests (custom harness, see below)
 make app      # assemble Espresso.app bundle (Info.plist + binary, ad-hoc signed)
+make dist     # app + dist/Espresso.zip and its .sha256 (release artifacts)
 make install  # copy Espresso.app to /Applications (canonical copy for Login Items)
 make run      # run the raw binary for quick iteration
 ```
+
+`VERSION` (default: exact tag, else short SHA) is stamped into the bundle's
+`CFBundleShortVersionString`. `ARCHS` is empty for a fast host-only build;
+`ARCHS="arm64 x86_64"` produces a universal binary — note SwiftPM then writes
+to `.build/apple/Products/Release/` instead of `.build/release/`.
+
+## Releasing
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a
+universal bundle and publishes `Espresso.zip` + `Espresso.zip.sha256` to a
+GitHub release. `install.sh` fetches `releases/latest/download/Espresso.zip`,
+so those asset names are a public contract — renaming one breaks every
+published `curl | bash` one-liner.
+
+The app is ad-hoc signed, not notarized (that needs a paid Apple Developer
+account), which is why `install.sh` clears `com.apple.quarantine` after
+installing. `curl` itself never sets the quarantine flag; browser downloads do,
+which is the case the README's manual instructions cover.
 
 **Tests are a plain executable target, not a `.testTarget`.** This machine has
 Command Line Tools only — XCTest isn't shipped and the CLT's Swift Testing

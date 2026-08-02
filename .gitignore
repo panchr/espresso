@@ -8,4 +8,5 @@
 .build/
 .swiftpm/
 Espresso.app/
+dist/
 .DS_Store

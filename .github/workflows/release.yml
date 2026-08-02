@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: make test
+
+      - name: Build universal app bundle
+        run: make dist ARCHS="arm64 x86_64" VERSION="${GITHUB_REF_NAME}"
+
+      # A silently single-arch release would only fail on the Intel Macs we
+      # have no way to test on.
+      - name: Verify both architectures are present
+        run: |
+          lipo -info Espresso.app/Contents/MacOS/Espresso
+          lipo -info Espresso.app/Contents/MacOS/Espresso | grep -q x86_64
+          lipo -info Espresso.app/Contents/MacOS/Espresso | grep -q arm64
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > "${RUNNER_TEMP}/notes.md" <<'EOF'
+          ## Install
+
+          ```sh
+          curl -fsSL https://raw.githubusercontent.com/panchr/espresso/main/install.sh | bash
+          ```
+
+          Or download `Espresso.zip` below, unzip it into `/Applications`, and run
+          `xattr -dr com.apple.quarantine /Applications/Espresso.app` — the app is
+          ad-hoc signed rather than notarized, so Gatekeeper blocks it otherwise.
+          EOF
+
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/Espresso.zip \
+            dist/Espresso.zip.sha256 \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --notes "$(cat "${RUNNER_TEMP}/notes.md")"
