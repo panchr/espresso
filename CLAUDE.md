@@ -80,6 +80,24 @@ account), which is why `install.sh` clears `com.apple.quarantine` after
 installing. `curl` itself never sets the quarantine flag; browser downloads do,
 which is the case the README's manual instructions cover.
 
+### Homebrew cask
+
+`Casks/espresso.rb` is the canonical cask; the release workflow stamps in the
+tagged version and the published archive's checksum, then pushes the result to
+`panchr/homebrew-tap`. That step is skipped (with a notice, not a failure) when
+the `TAP_TOKEN` secret is absent.
+
+Two constraints drive that design. A cask only *installs* a prebuilt artifact —
+it can't build from source, so GitHub releases remain the thing being
+distributed and the cask is a pointer at them. And Homebrew quarantines every
+download by default (`Cask::Download#quarantine`), which for a non-notarized app
+means Gatekeeper blocks the first launch — hence the cask's `postflight` clears
+the flag, mirroring `install.sh`.
+
+Lint a cask edit with `brew style Casks/espresso.rb`. Run it on the file in
+place: outside a `Casks/` directory, rubocop lints it as plain Ruby and reports
+irrelevant offenses (Sorbet sigils, frozen string literals).
+
 **Tests are a plain executable target, not a `.testTarget`.** This machine has
 Command Line Tools only — XCTest isn't shipped and the CLT's Swift Testing
 integration is broken (no `xctest` harness to load `.xctest` bundles,

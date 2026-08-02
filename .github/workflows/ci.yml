@@ -24,9 +24,11 @@ jobs:
           plutil -lint Espresso.app/Contents/Info.plist
           codesign --verify --verbose Espresso.app
 
-  shellcheck:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - name: Lint installer
         run: shellcheck install.sh
+      - name: Lint cask
+        run: brew style Casks/espresso.rb

@@ -6,15 +6,22 @@ tool.
 
 ## Install
 
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask panchr/tap/espresso
+```
+
+Or without it — same result, no dependencies:
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/panchr/espresso/main/install.sh | bash
 ```
 
-This downloads the latest release, verifies its checksum, installs it to
-`/Applications`, and launches it. Requires macOS 13 or later; Apple silicon and
-Intel are both supported.
+Either way you get the latest release, checksum-verified, in `/Applications`.
+Requires macOS 13 or later; Apple silicon and Intel are both supported.
 
-To uninstall:
+To uninstall, `brew uninstall --cask espresso`, or:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/panchr/espresso/main/install.sh | bash -s -- --uninstall

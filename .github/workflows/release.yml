@@ -10,6 +10,12 @@ permissions:
 jobs:
   release:
     runs-on: macos-15
+    env:
+      # Set this secret to a token with contents:write on the tap repo to have
+      # releases publish themselves to Homebrew; without it the tap step is
+      # skipped and the release still succeeds.
+      TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+      TAP_REPO: panchr/homebrew-tap
     steps:
       - uses: actions/checkout@v5
 
@@ -49,3 +55,35 @@ jobs:
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
             --notes "$(cat "${RUNNER_TEMP}/notes.md")"
+
+      # The cask can only point at an artifact that already exists, so this
+      # runs after the release is published.
+      - name: Update Homebrew tap
+        if: env.TAP_TOKEN != ''
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sha="$(cut -d' ' -f1 dist/Espresso.zip.sha256)"
+
+          git clone --quiet "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" "${RUNNER_TEMP}/tap"
+          mkdir -p "${RUNNER_TEMP}/tap/Casks"
+
+          # Drop the placeholder header; stamp in the version and checksum of
+          # the archive just published.
+          awk 'f || /^cask "/{f=1; print}' Casks/espresso.rb \
+            | sed -e "s|^  version .*|  version \"${version}\"|" \
+                  -e "s|^  sha256 .*|  sha256 \"${sha}\"|" \
+            > "${RUNNER_TEMP}/tap/Casks/espresso.rb"
+
+          grep -q "version \"${version}\"" "${RUNNER_TEMP}/tap/Casks/espresso.rb"
+          grep -q "sha256 \"${sha}\"" "${RUNNER_TEMP}/tap/Casks/espresso.rb"
+
+          cd "${RUNNER_TEMP}/tap"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/espresso.rb
+          git diff --cached --quiet || git commit -m "espresso ${version}"
+          git push
+
+      - name: Note skipped tap update
+        if: env.TAP_TOKEN == ''
+        run: echo "::notice::TAP_TOKEN is not set — skipping the Homebrew tap update"
