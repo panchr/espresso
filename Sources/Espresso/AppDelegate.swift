@@ -57,7 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             model: model,
             options: Self.durations.map(\.label),
             onSelect: { [weak self] index in self?.startSession(at: index) },
-            onClear: { [weak self] in self?.cancelSession() }
+            onClear: { [weak self] in self?.cancelSession() },
+            onQuit: { NSApp.terminate(nil) }
         )
         let host = NSHostingController(rootView: panel)
         host.sizingOptions = .preferredContentSize

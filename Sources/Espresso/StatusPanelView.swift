@@ -6,12 +6,13 @@ final class SessionModel: ObservableObject {
     @Published var selectedIndex: Int?
 }
 
-/// The left-click popover panel: current state, duration picker, and clear button.
+/// The left-click popover panel: current state, duration picker, and actions.
 struct StatusPanelView: View {
     @ObservedObject var model: SessionModel
     let options: [String]
     let onSelect: (Int) -> Void
     let onClear: () -> Void
+    let onQuit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -23,9 +24,10 @@ struct StatusPanelView: View {
             durationPicker
             Divider()
             HStack {
-                Spacer()
                 Button("Clear", action: onClear)
                     .disabled(!model.isActive)
+                Spacer()
+                Button("Quit", action: onQuit)
             }
         }
         .padding(10)
