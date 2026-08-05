@@ -13,7 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private let caffeinate = CaffeinateController()
     private let loginItem = LoginItemController()
+    private let clamshell = ClamshellMonitor()
     private let model = SessionModel()
+    private lazy var settings = SettingsModel(lidStateAvailable: clamshell.isSupported)
+    private lazy var settingsWindow = SettingsWindowController(model: settings)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
     private lazy var popover = makePopover()
@@ -30,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         caffeinate.onExpire = { [weak self] in self?.sessionChanged() }
+        clamshell.onClose = { [weak self] in self?.lidClosed() }
+        clamshell.start()
         // Restores the login item if an upgrade invalidated it, so relaunching
         // the app from /Applications is enough to fix Start at Login.
         loginItem.reconcile()
@@ -107,6 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.target = self
         login.state = loginItem.isEnabled ? .on : .off
         menu.addItem(login)
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Espresso", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         return menu
@@ -145,7 +153,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    @objc private func showSettings() {
+        settingsWindow.show()
+    }
+
     // MARK: - Session management
+
+    /// The lid just shut. A closed laptop means the user has stepped away, so
+    /// an unattended Mac shouldn't be left holding the wake-lock.
+    private func lidClosed() {
+        guard settings.stopWhenLidCloses, caffeinate.isActive else { return }
+        NSLog("Clamshell: lid closed, ending the keep-awake session")
+        cancelSession()
+    }
 
     private func startSession(at index: Int) {
         caffeinate.start(duration: Self.durations[index].seconds)

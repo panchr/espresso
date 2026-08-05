@@ -3,6 +3,7 @@ import Foundation
 runCountdownTests()
 runCaffeinateControllerTests()
 runLoginItemPolicyTests()
+runClamshellMonitorTests()
 runBuildInfoTests()
 
 if testFailures > 0 {
