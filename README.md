@@ -87,7 +87,7 @@ stuck awake. Quitting the app ends any active session.
 
 ## Changelog
 
-### v0.2
+### v0.1.4
 
 - Closing the laptop lid now ends an active session, so a docked Mac doesn't
   sit awake unattended. On by default; turn it off in Settings.
