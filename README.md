@@ -85,6 +85,37 @@ any reason, and timed sessions additionally have their timeout enforced by
 `caffeinate` — so a crashed or force-killed Espresso can never leave your Mac
 stuck awake. Quitting the app ends any active session.
 
+## Changelog
+
+### v0.2
+
+- Closing the laptop lid now ends an active session, so a docked Mac doesn't
+  sit awake unattended. On by default; turn it off in Settings.
+- New Settings window, opened from the right-click menu. **Start at Login**
+  moved here from that menu, so every preference lives in one place.
+
+### v0.1.3
+
+- Only a copy installed in an Applications directory can claim the Start at
+  Login registration, so a development build no longer steals it during a
+  `brew upgrade`.
+
+### v0.1.2
+
+- The right-click menu names the running version and commit, so a bug report
+  can quote the exact build.
+
+### v0.1.1
+
+- Start at Login survives app upgrades, which previously dropped the
+  registration silently.
+- Added a Quit button to the popover panel.
+
+### v0.1
+
+Initial release: menubar app, timed and indefinite sessions, live countdown,
+universal binary, Homebrew cask, and a one-line installer.
+
 ## Development
 
 ```sh
