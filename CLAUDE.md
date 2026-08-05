@@ -136,6 +136,8 @@ executable (UI).
 - `Sources/EspressoCore/Countdown.swift` — pure remaining-time formatter
 - `Sources/EspressoCore/LoginItemPolicy.swift` — pure decision table for what
   launching should do about the login-item registration
+- `Sources/EspressoCore/ClamshellMonitor.swift` — lid-state watcher; reports
+  open→closed transitions (reader injectable for tests)
 - `Sources/Espresso/main.swift` — entry point; wires NSApplication + delegate
 - `Sources/Espresso/AppDelegate.swift` — owns the NSStatusItem: left-click
   opens an NSPopover (SwiftUI panel), right-click shows an NSMenu (Clear /
@@ -144,6 +146,8 @@ executable (UI).
   `SessionModel` (ObservableObject bridging app state into the view)
 - `Sources/Espresso/LoginItemController.swift` — the `SMAppService` half of
   Start at Login: applies `LoginItemPolicy` at launch and persists the choice
+- `Sources/Espresso/SettingsView.swift` / `SettingsWindowController.swift` —
+  the preferences window and its persisted `SettingsModel`
 
 **Core design decision**: all power management is delegated to the `caffeinate`
 child process. The child runs with `-w <app pid>` so it exits when Espresso
@@ -151,6 +155,16 @@ dies (even SIGKILL — graceful-quit cleanup alone misses SIGTERM/crash, which
 orphans the child), and timed sessions also pass `-t`; caffeinate honors
 whichever fires first (verified empirically). A dead app can never leave the
 Mac stuck awake. Clearing/quitting terminates the child directly.
+
+**Lid detection is push-based, and absence is the capability check.**
+`IOPMrootDomain` publishes `AppleClamshellState` only on machines that have a
+lid, so a missing property means "desktop Mac" — `ClamshellMonitor` reports
+`.unsupported` and stays inert rather than assuming a lid exists. Changes
+arrive via `IOServiceAddInterestNotification` (no polling). The monitor
+re-reads the property on *every* general-interest message instead of filtering
+for `kIOPMMessageClamshellStateChange`: that constant is a nested C macro Swift
+won't import, and unrelated power messages do arrive, so only the open→closed
+transition triggers anything.
 
 **Start at Login survives upgrades on purpose.** Ad-hoc signing gives a
 replaced bundle no stable code-signing identity, so macOS can drop the
