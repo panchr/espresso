@@ -57,13 +57,6 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             setting(
-                title: "Stop when the lid closes",
-                explanation: lidExplanation,
-                isOn: $model.stopWhenLidCloses,
-                enabled: model.lidStateAvailable
-            )
-            Divider()
-            setting(
                 title: "Start at Login",
                 explanation: "Launch Espresso automatically when you log in.",
                 // SMAppService is the source of truth, so the toggle reports
@@ -73,6 +66,13 @@ struct SettingsView: View {
                     set: { _ in model.toggleStartAtLogin() }
                 ),
                 enabled: true
+            )
+            Divider()
+            setting(
+                title: "Stop when the lid closes",
+                explanation: lidExplanation,
+                isOn: $model.stopWhenLidCloses,
+                enabled: model.lidStateAvailable
             )
         }
         .padding(20)
