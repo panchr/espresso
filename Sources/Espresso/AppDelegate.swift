@@ -15,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let loginItem = LoginItemController()
     private let clamshell = ClamshellMonitor()
     private let model = SessionModel()
-    private lazy var settings = SettingsModel(lidStateAvailable: clamshell.isSupported)
+    private lazy var settings = SettingsModel(loginItem: loginItem, lidStateAvailable: clamshell.isSupported)
     private lazy var settingsWindow = SettingsWindowController(model: settings)
     private var statusItem: NSStatusItem!
     private var refreshTimer: Timer?
@@ -108,11 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(clear)
             menu.addItem(.separator())
         }
-        let login = NSMenuItem(title: "Start at Login", action: #selector(toggleStartAtLogin), keyEquivalent: "")
-        login.target = self
-        login.state = loginItem.isEnabled ? .on : .off
-        menu.addItem(login)
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: "")
         settingsItem.target = self
         menu.addItem(settingsItem)
         menu.addItem(.separator())
@@ -143,14 +139,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let item = NSMenuItem()
         item.attributedTitle = title
         return item
-    }
-
-    @objc private func toggleStartAtLogin() {
-        // Only the user can restore consent they revoked in System Settings,
-        // so send them there rather than failing silently.
-        if loginItem.toggle() == .needsUserApproval {
-            loginItem.openSystemSettings()
-        }
     }
 
     @objc private func showSettings() {

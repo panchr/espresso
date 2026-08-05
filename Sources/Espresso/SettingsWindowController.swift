@@ -12,6 +12,8 @@ final class SettingsWindowController {
     }
 
     func show() {
+        // The login item can be changed in System Settings behind our back.
+        model.refreshStartAtLogin()
         if window == nil {
             let created = makeWindow()
             created.center()

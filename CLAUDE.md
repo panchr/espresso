@@ -141,7 +141,7 @@ executable (UI).
 - `Sources/Espresso/main.swift` — entry point; wires NSApplication + delegate
 - `Sources/Espresso/AppDelegate.swift` — owns the NSStatusItem: left-click
   opens an NSPopover (SwiftUI panel), right-click shows an NSMenu (Clear /
-  Start at Login / Quit), and a 1s timer renders the countdown in the menubar
+  Settings / Quit), and a 1s timer renders the countdown in the menubar
 - `Sources/Espresso/StatusPanelView.swift` — SwiftUI popover content +
   `SessionModel` (ObservableObject bridging app state into the view)
 - `Sources/Espresso/LoginItemController.swift` — the `SMAppService` half of
