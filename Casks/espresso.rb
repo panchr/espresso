@@ -23,9 +23,9 @@ cask "espresso" do
 
   # Espresso is ad-hoc signed rather than notarized, so Gatekeeper would block
   # the copy Homebrew quarantines on download.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Espresso.app"]
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/Espresso.app"]
   end
 
   uninstall quit: "com.panchr.Espresso"

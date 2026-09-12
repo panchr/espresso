@@ -87,6 +87,11 @@ stuck awake. Quitting the app ends any active session.
 
 ## Changelog
 
+### v0.1.5
+
+- The Homebrew cask no longer prints a deprecation warning on every
+  `brew` command that touches the tap.
+
 ### v0.1.4
 
 - Closing the laptop lid now ends an active session, so a docked Mac doesn't
